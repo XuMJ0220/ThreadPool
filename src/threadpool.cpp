@@ -53,10 +53,29 @@ void ThreadPool::start(int initThreadSize){
     }
 }
 
-// 定义线程函数
+// 定义线程函数，这里充当消费者，从任务队列里取任务执行
 void ThreadPool::threadFunc(){
-    std::cout<<"begin thread tid: "<<std::this_thread::get_id()<<std::endl;
-    std::cout<<"end thread tid: "<<std::this_thread::get_id()<<std::endl;
+    for(;;){
+        // 抢锁
+        std::unique_lock<std::mutex> lock(taskMutex_);
+        // 如果任务队列空了，就要等待，非空才能往下走
+        notEmpty_.wait(lock, [&]() -> bool
+                       { return taskQue_.size() > 0; });
+        // 来到了这里表示任务队列非空，可以取任务执行了
+        std::shared_ptr<Task> ptr = taskQue_.front();
+        taskQue_.pop();
+        taskSize_--;
+        //在这里就要把锁让出去，不能等到我把任务做完了才把锁让出去，且notFull去通知那些被notFull卡住的线程，让他们变成阻塞态
+        lock.unlock();
+        notFull_.notify_all();
+        //如果依然有剩余任务，继续通知其它线程执行任务
+        if(taskQue_.size()>0){
+            notEmpty_.notify_all();
+        }
+        //自己去执行任务了
+        ptr->run();
+    }
+    
 }
 
 //用户提交任务,这里就是一个生产者了
@@ -66,7 +85,7 @@ void ThreadPool::submitTask(std::shared_ptr<Task> task){
 
     //有时间限制的版本,在规定的时间内满足了就往下走，不然就退出
     if(notFull_.wait_for(lock,std::chrono::seconds(1),[&]()->bool{
-        return taskQue_.size() < taskQueMaxThreshHold_;
+        return taskQue_.size() < (size_t)taskQueMaxThreshHold_;
     })==false){
         std::cerr<<"task queue is full,submit task failed!"<<std::endl;
         return;

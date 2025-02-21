@@ -33,7 +33,12 @@ class Task
         
         //析构函数
         ~Task();
-    private:
+
+		//执行任务
+		//用户可以自定义任意任务类型，从Task继承，重写run方法，实现自定义任务处理
+		virtual void run() = 0;
+
+	private:
 };
 
 // 线程池支持的模式
