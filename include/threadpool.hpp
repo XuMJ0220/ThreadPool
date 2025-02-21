@@ -71,7 +71,9 @@ private:
 	void threadFunc();
 
 private:
-	std::vector<Thread*> threads_; // 线程列表,先用裸指针,后面再用智能指针
+	//之前用裸指针传进去threads_的都是new出来的，既然有new，就得有delete，
+	//但是在容器里放着也不好去delete，直接改成智能指针让它帮我们delete就行了
+	std::vector<std::unique_ptr<Thread>> threads_; // 线程列表,改为智能指针
 
 	int initThreadSize_;  // 初始的线程数量
 	int threadSizeThreshHold_; // 线程数量上限阈值

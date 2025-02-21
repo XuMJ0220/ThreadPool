@@ -35,7 +35,15 @@ void ThreadPool::start(int initThreadSize){
     for(int i=0;i<initThreadSize_;i++){
         //往线程池里添加线程
         for(int i = 0; i < initThreadSize_ ; i++){
-            threads_.emplace_back(new Thread(std::bind(&ThreadPool::threadFunc,this)));
+            //尖括号<>里的填原本new的那个类型，()括号里的填传入的参数
+            std::unique_ptr<Thread> ptr = std::make_unique<Thread>(std::bind(&ThreadPool::threadFunc,this)); 
+            //threads_.emplace_back(new Thread(std::bind(&ThreadPool::threadFunc,this)));
+            //不能直接把ptr传进去，ptr这里是一个左值，
+            //ptr在这里其实是一个unique_ptr，unique_ptr的左值引用拷贝构造函数被删掉了，
+            //而emplace_back是会默认进行赋值的，这就导致了传入一个左值的话会报错，所以得用move来把左值改成右值
+            //简单来说，就是emplace_back如果参数是一个左值，
+            //那么就会进行左值引用拷贝构造，如果是一个右值，就会进行右值引用拷贝构造
+            threads_.emplace_back(std::move(ptr));
         }
     }
 
