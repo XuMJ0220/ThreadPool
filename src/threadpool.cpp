@@ -64,12 +64,13 @@ void ThreadPool::submitTask(std::shared_ptr<Task> task){
     //先获得互斥锁
     std::unique_lock<std::mutex> lock(taskMutex_);
 
-    //如果是队列那满了，就要等待了，如果没有满就往下走
-    //条件变量,如果lambda表达式返回true，那么就可以往下走了，
-    //如果是false,那么就会变成等待态，同时释放掉taskMutex_这把锁
-    notFull_.wait(lock,[&]()->bool{
-        return taskQue_.size() < MAX_THRESHHOLD_SIZE;
-    });
+    //有时间限制的版本,在规定的时间内满足了就往下走，不然就退出
+    if(notFull_.wait_for(lock,std::chrono::seconds(1),[&]()->bool{
+        return taskQue_.size() < taskQueMaxThreshHold_;
+    })==false){
+        std::cerr<<"task queue is full,submit task failed!"<<std::endl;
+        return;
+    }
 
     //来到了这里表示队列没满，可以往队列添加任务
     taskQue_.emplace(task);
