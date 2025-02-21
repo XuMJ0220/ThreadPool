@@ -9,13 +9,21 @@
 class Thread{
     private:
     public:
+        //构造函数
+        Thread();
+        
+        //析构函数
+        ~Thread();
 };
 
 // 任务抽象基类
 class Task
 {
     public:
+        //构造函数
         Task();
+        
+        //析构函数
         ~Task();
     private:
 };

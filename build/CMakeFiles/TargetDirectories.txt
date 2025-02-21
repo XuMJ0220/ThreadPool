@@ -1,0 +1,2 @@
+/home/xumj/项目/ThreadPool/build/CMakeFiles/rebuild_cache.dir
+/home/xumj/项目/ThreadPool/build/CMakeFiles/edit_cache.dir
