@@ -58,6 +58,25 @@ void ThreadPool::threadFunc(){
     std::cout<<"begin thread tid: "<<std::this_thread::get_id()<<std::endl;
     std::cout<<"end thread tid: "<<std::this_thread::get_id()<<std::endl;
 }
+
+//用户提交任务,这里就是一个生产者了
+void ThreadPool::submitTask(std::shared_ptr<Task> task){
+    //先获得互斥锁
+    std::unique_lock<std::mutex> lock(taskMutex_);
+
+    //如果是队列那满了，就要等待了，如果没有满就往下走
+    //条件变量,如果lambda表达式返回true，那么就可以往下走了，
+    //如果是false,那么就会变成等待态，同时释放掉taskMutex_这把锁
+    notFull_.wait(lock,[&]()->bool{
+        return taskQue_.size() < MAX_THRESHHOLD_SIZE;
+    });
+
+    //来到了这里表示队列没满，可以往队列添加任务
+    taskQue_.emplace(task);
+
+    //添加完任务后，通知那些被notEmpty条件变量卡住的线程，让他们变成阻塞态
+    notEmpty_.notify_one();
+}
 /**************************************ThreadPool**************************************************/
 
 /****************************************Thread**************************************************/

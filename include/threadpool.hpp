@@ -8,6 +8,8 @@
 #include <thread>
 #include <functional>
 #include <iostream>
+#include <mutex>
+#include <condition_variable>
 class Thread{
     private:
         std::function<void(void)> threadFun_;
@@ -62,6 +64,9 @@ public:
 	// 开启线程池
 	void start(int initThreadSize = 4);
 
+	//用户提交任务
+	void submitTask(std::shared_ptr<Task> task);
+
 	//禁止使用赋值和赋值构造函数  
 	ThreadPool(const ThreadPool&) = delete;
 	ThreadPool& operator=(const ThreadPool&) = delete;
@@ -85,6 +90,10 @@ private:
 	std::queue<std::shared_ptr<Task>> taskQue_; // 任务队列
 	std::atomic_int taskSize_; // 任务的数量
 	int taskQueMaxThreshHold_;  // 任务队列数量上限阈值
+
+	std::mutex taskMutex_;//保证任务队列的线程安全
+	std::condition_variable notFull_;//任务队列非满的条件变量
+	std::condition_variable notEmpty_;//任务队列非空的条件变量
 
 	PoolMode poolMode_; // 当前线程池的工作模式
 };
