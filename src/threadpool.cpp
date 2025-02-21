@@ -30,24 +30,44 @@ void ThreadPool::setThreadSizeThreshHold(int threshhold){
 
 // 开启线程池
 void ThreadPool::start(int initThreadSize){
-    initThreadSize_ = initThreadSize;
+    initThreadSize_ = initThreadSize;//初始化线程数量
+
+    for(int i=0;i<initThreadSize_;i++){
+        //往线程池里添加线程
+        for(int i = 0; i < initThreadSize_ ; i++){
+            threads_.emplace_back(new Thread(std::bind(&ThreadPool::threadFunc,this)));
+        }
+    }
+
+    //开始执行
+    for(int i = 0;i<initThreadSize_;i++){
+        threads_[i]->start();
+    }
 }
 
 // 定义线程函数
 void ThreadPool::threadFunc(){
-
+    std::cout<<"begin thread tid: "<<std::this_thread::get_id()<<std::endl;
+    std::cout<<"end thread tid: "<<std::this_thread::get_id()<<std::endl;
 }
 /**************************************ThreadPool**************************************************/
 
 /****************************************Thread**************************************************/
 //构造函数
-Thread::Thread()
+Thread::Thread(std::function<void(void)> threadFun)
+:threadFun_(threadFun)
 {
 }
 
 //析构函数
 Thread::~Thread(){}
 
+//开始线程
+void Thread::start(){
+    // 创建一个线程来执行一个线程函数 pthread_create
+    std::thread t(threadFun_);
+    t.detach(); // 设置分离线程  
+}
 /****************************************Thread**************************************************/
 
 /*****************************************Task**************************************************/

@@ -5,15 +5,21 @@
 #include <queue>
 #include <atomic>
 #include <memory>
-
+#include <thread>
+#include <functional>
+#include <iostream>
 class Thread{
     private:
+        std::function<void(void)> threadFun_;
     public:
         //构造函数
-        Thread();
-        
+        Thread(std::function<void(void)>);
+
         //析构函数
         ~Thread();
+
+        //开始线程
+        void start();
 };
 
 // 任务抽象基类
