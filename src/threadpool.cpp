@@ -164,3 +164,22 @@ Task::~Task()
 
 
 /*****************************************MyAny**************************************************/
+/**************************************MySemaphore**************************************************/
+void MySemaphore::wait(){
+    //先获得锁
+    std::unique_lock<std::mutex> lock(mtx_);
+    //等待信号量有资源，没有资源的话，会阻塞当前线程
+    cond_.wait(lock,[&]()->bool{
+        return resLimit_ > 0;
+    });
+    resLimit_--;
+}
+
+void MySemaphore::post(){
+    //先获得锁
+    std::unique_lock<std::mutex> lock(mtx_);
+    resLimit_++;
+    cond_.notify_all();
+}
+
+/**************************************MySemaphore**************************************************/

@@ -161,4 +161,24 @@ T MyAny::cast_(){
     }
     return pt->data_;
 }
+
+//MySemaphore
+class MySemaphore{
+	private:
+		//条件变量
+		std::mutex mtx_;
+		std::condition_variable cond_;
+		//资源
+		int resLimit_;
+	public:
+		MySemaphore(int resLimit)
+		:resLimit_(resLimit)
+		{}
+
+		~MySemaphore() = default;
+		//P
+		void wait();
+		//V
+		void post();
+};
 #endif
