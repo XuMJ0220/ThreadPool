@@ -107,9 +107,12 @@ private:
 class MyAny
 {
 public:
-	// 1.要接收任意类型，所以得用模板
+	// 1.要接收任意类型，所以得用模板 5.初始化部分,base_指针赋值为Derive(data)的指针
 	template <typename T>
-	MyAny(T data);
+	MyAny(T data)
+	:base_(std::make_unique<Derive<T>>(data))
+	{
+	}
 
 	// 2.一个Base基类
 	class Base
@@ -145,4 +148,17 @@ private:
 	std::unique_ptr<Base> base_;
 };
 
+//7.
+template<typename T>
+T MyAny::cast_(){
+    //在这里我们明确的知道了base_就是一个基类的智能指针，但是指向Derive<T>这个派生类
+    //那么就直接接收了这个指针
+    //这里dynamic_cast<T>(base_.get())是因为base_.get()就是一个指向Derive<T>派生类的指针
+    //智能指针的get()可以得到普通指针
+    Derive<T>* pt = dynamic_cast<Derive<T>*>(base_.get());
+    if(pd==nullptr){
+        thrwo "type is unmatch!";
+    }
+    return pt->data_;
+}
 #endif
