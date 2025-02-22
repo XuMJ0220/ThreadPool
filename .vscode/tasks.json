@@ -1,0 +1,32 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C/C++: g++ 生成活动文件",
+            "command": "/usr/bin/g++",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-g",
+                "-I/${workspaceFolder}/include",
+                "${workspaceFolder}/src/threadpool.cpp",  // 添加 ThreadPool.cpp
+                //"test1.cpp",
+                "test2.cpp",
+				"-pthread",
+                "-o",
+                "${workspaceFolder}/middle_out/a.out"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/test"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "编译器: /usr/bin/g++",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

@@ -3,6 +3,26 @@
 const int MAX_THRESHHOLD_SIZE = 1024;
 const int TASK_MAX_THRESHHOLD = INT32_MAX;
 /**************************************ThreadPool**************************************************/
+
+//使用例子:
+//class MyTask:public Task
+//{
+//  private:
+//  public:
+//         void run(){
+//             自定义
+//             ....
+//         }
+//      
+//}
+
+//ThreadPool pool;
+//pool.start(4);
+
+//pool.submitTask(std::share_ptr<MyTask>());
+
+
+
 // 线程池构造
 ThreadPool::ThreadPool()
 :initThreadSize_(4),threadSizeThreshHold_(MAX_THRESHHOLD_SIZE),taskSize_(0),taskQueMaxThreshHold_(TASK_MAX_THRESHHOLD)
@@ -58,10 +78,17 @@ void ThreadPool::threadFunc(){
     for(;;){
         // 抢锁
         std::unique_lock<std::mutex> lock(taskMutex_);
+
+        //提示一下
+
+        std::cout<<"线程: "<<std::this_thread::get_id()<<" 准备从任务队列取任务"<<std::endl;
+
         // 如果任务队列空了，就要等待，非空才能往下走
         notEmpty_.wait(lock, [&]() -> bool
                        { return taskQue_.size() > 0; });
         // 来到了这里表示任务队列非空，可以取任务执行了
+        std::cout<<"线程: "<<std::this_thread::get_id()<<" 取到了任务"<<std::endl;
+
         std::shared_ptr<Task> ptr = taskQue_.front();
         taskQue_.pop();
         taskSize_--;
@@ -73,6 +100,7 @@ void ThreadPool::threadFunc(){
             notEmpty_.notify_all();
         }
         //自己去执行任务了
+        
         ptr->run();
     }
     
