@@ -157,3 +157,25 @@ Task::~Task()
 
 
 /*****************************************Task**************************************************/
+
+/*****************************************MyAny**************************************************/
+//5.初始化部分,base_指针赋值为Derive(data)的指针
+template<typename T>
+MyAny::MyAny(T data)
+:base_(std::make_unique<Derive<T>>(data))
+{}
+
+template<typename T>
+T MyAny::cast_(){
+    //在这里我们明确的知道了base_就是一个基类的智能指针，但是指向Derive<T>这个派生类
+    //那么就直接接收了这个指针
+    //这里dynamic_cast<T>(base_.get())是因为base_.get()就是一个指向Derive<T>派生类的指针
+    //智能指针的get()可以得到普通指针
+    Derive<T>* pt = dynamic_cast<Derive<T>*>(base_.get());
+    if(pd==nullptr){
+        thrwo "type is unmatch!";
+    }
+    return pt->data_;
+}
+
+/*****************************************MyAny**************************************************/

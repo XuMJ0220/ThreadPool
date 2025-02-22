@@ -103,4 +103,46 @@ private:
 	PoolMode poolMode_; // 当前线程池的工作模式
 };
 
+//实现自己的Any类
+class MyAny
+{
+public:
+	// 1.要接收任意类型，所以得用模板
+	template <typename T>
+	MyAny(T data);
+
+	// 2.一个Base基类
+	class Base
+	{
+	private:
+	public:
+		virtual ~Base() = default;
+	};
+	// 3.派生类,把data_放在派生类中
+	template <typename T>
+	class Derive : public Base
+	{
+	private:
+		T data_;
+
+	public:
+		Derive(T data) : data_(data) {};
+	};
+
+	//6.
+	MyAny() = default;
+	~MyAny() = default;
+	MyAny(const MyAny&) = delete;
+	MyAny& operator=(const MyAny&) = delete;
+	MyAny(MyAny&&) = default;
+	MyAny& operator=(MyAny&&) = default;
+
+	//7.把MyAny类型里面存储的data数据提取出来
+	template<typename T>
+	T cast_();
+private:
+	// 4.一个基类的指针指针
+	std::unique_ptr<Base> base_;
+};
+
 #endif
