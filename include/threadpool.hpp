@@ -23,6 +23,8 @@ class Thread{
         //开始线程
         void start();
 };
+//MyAny类前置声明
+class MyAny;
 //MySemaphore类前置声明
 class MySemaphore;
 //Task类的前置声明
@@ -37,6 +39,12 @@ class Result{
 	public:
 		Result(std::shared_ptr<Task> task,bool isValid=true);
 		~Result() = default;
+
+		//问题一：如何把Task中任务执行完，也就是run()执行完的MyAny返回值存到Result的any_呢？
+		void setVal(MyAny any);
+		//问题二：用户在调用返回的Result的get方法，用户调用这个方法获取run()执行后返回的MyAny，
+		//同时，如果submitTask提交的任务没有被执行完，get是要被阻塞住的
+		MyAny get();
 };
 
 // 任务抽象基类

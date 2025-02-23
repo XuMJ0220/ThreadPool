@@ -190,4 +190,12 @@ Result::Result(std::shared_ptr<Task> task,bool isValid)
 :task_(task),isValid_(isValid)
 {
 }
+
+MyAny Result::get(){
+    if(isValid_==false){
+        return "";
+    }
+    sem_.wait();//task任务还没有执执行完，就会阻塞在这里
+    return std::move(any_);
+}
 /**************************************Result**************************************************/
