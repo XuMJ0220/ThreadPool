@@ -23,7 +23,8 @@ class Thread{
         //开始线程
         void start();
 };
-
+//MySemaphore类前置声明
+class MySemaphore;
 //Task类的前置声明
 class Task;
 //Result类
@@ -185,7 +186,7 @@ class MySemaphore{
 		//资源
 		int resLimit_;
 	public:
-		MySemaphore(int resLimit)
+		MySemaphore(int resLimit = 0)
 		:resLimit_(resLimit)
 		{}
 
