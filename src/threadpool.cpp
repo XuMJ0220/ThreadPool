@@ -107,7 +107,7 @@ void ThreadPool::threadFunc(){
 }
 
 //用户提交任务,这里就是一个生产者了
-void ThreadPool::submitTask(std::shared_ptr<Task> task){
+Result ThreadPool::submitTask(std::shared_ptr<Task> task){
     //先获得互斥锁
     std::unique_lock<std::mutex> lock(taskMutex_);
 
@@ -116,14 +116,15 @@ void ThreadPool::submitTask(std::shared_ptr<Task> task){
         return taskQue_.size() < (size_t)taskQueMaxThreshHold_;
     })==false){
         std::cerr<<"task queue is full,submit task failed!"<<std::endl;
-        return;
+        return Result(task,false);
     }
 
     //来到了这里表示队列没满，可以往队列添加任务
     taskQue_.emplace(task);
-
+    taskSize_++;
     //添加完任务后，通知那些被notEmpty条件变量卡住的线程，让他们变成阻塞态
-    notEmpty_.notify_one();
+    notEmpty_.notify_all();
+    return Result(task);
 }
 /**************************************ThreadPool**************************************************/
 
@@ -183,3 +184,10 @@ void MySemaphore::post(){
 }
 
 /**************************************MySemaphore**************************************************/
+
+/**************************************Result**************************************************/
+Result::Result(std::shared_ptr<Task> task,bool isValid)
+:task_(task),isValid_(isValid)
+{
+}
+/**************************************Result**************************************************/

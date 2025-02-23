@@ -24,6 +24,18 @@ class Thread{
         void start();
 };
 
+//Task类的前置声明
+class Task;
+//Result类
+class Result{
+	private:
+		std::shared_ptr<Task> task_;//指向对应获取返回值的任务对象
+		std::atomic_bool isValid_;//返回值是否有效
+	public:
+		Result(std::shared_ptr<Task> task,bool isValid=true);
+		~Result() = default;
+};
+
 // 任务抽象基类
 class Task
 {
@@ -70,7 +82,7 @@ public:
 	void start(int initThreadSize = 4);
 
 	//用户提交任务
-	void submitTask(std::shared_ptr<Task> task);
+	Result submitTask(std::shared_ptr<Task> task);
 
 	//禁止使用赋值和赋值构造函数  
 	ThreadPool(const ThreadPool&) = delete;
