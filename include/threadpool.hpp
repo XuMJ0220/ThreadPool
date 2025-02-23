@@ -29,6 +29,8 @@ class Task;
 //Result类
 class Result{
 	private:
+		MyAny any_;//存储任务的返回值
+		MySemaphore sem_;//线程通信信号量
 		std::shared_ptr<Task> task_;//指向对应获取返回值的任务对象
 		std::atomic_bool isValid_;//返回值是否有效
 	public:
