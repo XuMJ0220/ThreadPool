@@ -190,6 +190,7 @@ void MySemaphore::post(){
 Result::Result(std::shared_ptr<Task> task,bool isValid)
 :task_(task),isValid_(isValid)
 {
+    sem_ = std::make_unique<MySemaphore>();
 }
 // 添加移动构造函数实现
 Result::Result(Result&& other) noexcept
