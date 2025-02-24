@@ -101,10 +101,13 @@ void ThreadPool::threadFunc(){
             notEmpty_.notify_all();
         }
         //自己去执行任务了
-        
-        ptr->run();
+        //在这里还是让用户自己去定义任务，但是我们要把run的返回值MyAny类防盗Result了，
+        //所以得重新包装
+        if(ptr!=nullptr){
+            //ptr->run();
+            ptr->exec();
+        }
     }
-    
 }
 
 //用户提交任务,这里就是一个生产者了
@@ -157,6 +160,11 @@ Task::Task()
 Task::~Task()
 {}
 
+//把run包装起来，因为我们要在run的基础上得到run的返回值
+void Task::exec(){
+    result_->setVal(run());
+}
+
 
 /*****************************************Task**************************************************/
 
@@ -191,6 +199,10 @@ Result::Result(std::shared_ptr<Task> task,bool isValid)
 :task_(task),isValid_(isValid)
 {
     sem_ = std::make_unique<MySemaphore>();
+
+    //submitTask返回的Result类型的对象包含submitTask提交的具体的一个task_
+    //这个Task类包含Result指针，在这里就是要把task_的result_指针指向当前这个Result对象
+    task->result_ = this;
 }
 // 添加移动构造函数实现
 Result::Result(Result&& other) noexcept
@@ -205,5 +217,11 @@ MyAny Result::get(){
     }
     sem_->wait();//task任务还没有执执行完，就会阻塞在这里
     return std::move(any_);
+}
+
+void Result::setVal(MyAny any){
+    any_ = std::move(any);
+    //到了这里已经是任务执行完了，就可以把信号量加1了
+    sem_->post();
 }
 /**************************************Result**************************************************/
