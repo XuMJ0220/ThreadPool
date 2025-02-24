@@ -117,7 +117,7 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> task){
         return taskQue_.size() < (size_t)taskQueMaxThreshHold_;
     })==false){
         std::cerr<<"task queue is full,submit task failed!"<<std::endl;
-        return Result(task,false);
+        return Result(std::move(task),false);
     }
 
     //来到了这里表示队列没满，可以往队列添加任务
@@ -125,7 +125,7 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> task){
     taskSize_++;
     //添加完任务后，通知那些被notEmpty条件变量卡住的线程，让他们变成阻塞态
     notEmpty_.notify_all();
-    return Result(task);
+    return Result(std::move(task));
 }
 /**************************************ThreadPool**************************************************/
 
@@ -191,12 +191,18 @@ Result::Result(std::shared_ptr<Task> task,bool isValid)
 :task_(task),isValid_(isValid)
 {
 }
-
+// 添加移动构造函数实现
+Result::Result(Result&& other) noexcept
+    : any_(std::move(other.any_)),
+      sem_(std::move(other.sem_)),
+      task_(std::move(other.task_)),
+      isValid_(other.isValid_.load()) {
+}
 MyAny Result::get(){
     if(isValid_==false){
         return "";
     }
-    sem_.wait();//task任务还没有执执行完，就会阻塞在这里
+    sem_->wait();//task任务还没有执执行完，就会阻塞在这里
     return std::move(any_);
 }
 /**************************************Result**************************************************/

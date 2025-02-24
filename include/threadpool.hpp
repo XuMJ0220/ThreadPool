@@ -94,7 +94,8 @@ class MySemaphore{
 		MySemaphore(int resLimit = 0)
 		:resLimit_(resLimit)
 		{}
-
+		MySemaphore(const MySemaphore&) = delete;
+		MySemaphore& operator=(const MySemaphore&) = delete;
 		~MySemaphore() = default;
 		//P
 		void wait();
@@ -107,12 +108,16 @@ class Task;
 class Result{
 	private:
 		MyAny any_;//存储任务的返回值
-		MySemaphore sem_;//线程通信信号量
+		//MySemaphore sem_;//线程通信信号量
+		std::unique_ptr<MySemaphore> sem_; // 改为unique_ptr
 		std::shared_ptr<Task> task_;//指向对应获取返回值的任务对象
 		std::atomic_bool isValid_;//返回值是否有效
 	public:
 		Result(std::shared_ptr<Task> task,bool isValid=true);
+		Result(Result&& other) noexcept; // 移动构造函数
 		~Result() = default;
+		Result(const Result&) = delete;
+    	Result& operator=(const Result&) = delete;
 
 		//问题一：如何把Task中任务执行完，也就是run()执行完的MyAny返回值存到Result的any_呢？
 		void setVal(MyAny any);
