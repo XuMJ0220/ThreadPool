@@ -45,7 +45,7 @@ public:
 	template <typename T>
 	class Derive : public Base
 	{
-	private:
+	public:
 		T data_;
 
 	public:
@@ -138,9 +138,16 @@ class Task
 
 		//执行任务
 		//用户可以自定义任意任务类型，从Task继承，重写run方法，实现自定义任务处理
-		virtual void run() = 0;
+		//run返回类型改为MyAny
+		virtual MyAny run() = 0;
 
+		//把run包装起来，因为我们要在run的基础上得到run的返回值
+		void exec();
+
+		//指向Result类的指针
+		Result* result_;
 	private:
+		
 };
 
 // 线程池支持的模式
