@@ -23,10 +23,84 @@ class Thread{
         //开始线程
         void start();
 };
-//MyAny类前置声明
-class MyAny;
-//MySemaphore类前置声明
-class MySemaphore;
+//实现自己的Any类
+class MyAny
+{
+public:
+	// 1.要接收任意类型，所以得用模板 5.初始化部分,base_指针赋值为Derive(data)的指针
+	template <typename T>
+	MyAny(T data)
+	:base_(std::make_unique<Derive<T>>(data))
+	{
+	}
+
+	// 2.一个Base基类
+	class Base
+	{
+	private:
+	public:
+		virtual ~Base() = default;
+	};
+	// 3.派生类,把data_放在派生类中
+	template <typename T>
+	class Derive : public Base
+	{
+	private:
+		T data_;
+
+	public:
+		Derive(T data) : data_(data) {};
+	};
+
+	//6.
+	MyAny() = default;
+	~MyAny() = default;
+	MyAny(const MyAny&) = delete;
+	MyAny& operator=(const MyAny&) = delete;
+	MyAny(MyAny&&) = default;
+	MyAny& operator=(MyAny&&) = default;
+
+	//7.把MyAny类型里面存储的data数据提取出来
+	template<typename T>
+	T cast_();
+private:
+	// 4.一个基类的指针指针
+	std::unique_ptr<Base> base_;
+};
+
+//7.
+template<typename T>
+T MyAny::cast_(){
+    //在这里我们明确的知道了base_就是一个基类的智能指针，但是指向Derive<T>这个派生类
+    //那么就直接接收了这个指针
+    //这里dynamic_cast<T>(base_.get())是因为base_.get()就是一个指向Derive<T>派生类的指针
+    //智能指针的get()可以得到普通指针
+    Derive<T>* pt = dynamic_cast<Derive<T>*>(base_.get());
+    if(pt==nullptr){
+        throw "type is unmatch!";
+    }
+    return pt->data_;
+}
+
+//MySemaphore
+class MySemaphore{
+	private:
+		//条件变量
+		std::mutex mtx_;
+		std::condition_variable cond_;
+		//资源
+		int resLimit_;
+	public:
+		MySemaphore(int resLimit = 0)
+		:resLimit_(resLimit)
+		{}
+
+		~MySemaphore() = default;
+		//P
+		void wait();
+		//V
+		void post();
+};
 //Task类的前置声明
 class Task;
 //Result类
@@ -126,82 +200,5 @@ private:
 	PoolMode poolMode_; // 当前线程池的工作模式
 };
 
-//实现自己的Any类
-class MyAny
-{
-public:
-	// 1.要接收任意类型，所以得用模板 5.初始化部分,base_指针赋值为Derive(data)的指针
-	template <typename T>
-	MyAny(T data)
-	:base_(std::make_unique<Derive<T>>(data))
-	{
-	}
 
-	// 2.一个Base基类
-	class Base
-	{
-	private:
-	public:
-		virtual ~Base() = default;
-	};
-	// 3.派生类,把data_放在派生类中
-	template <typename T>
-	class Derive : public Base
-	{
-	private:
-		T data_;
-
-	public:
-		Derive(T data) : data_(data) {};
-	};
-
-	//6.
-	MyAny() = default;
-	~MyAny() = default;
-	MyAny(const MyAny&) = delete;
-	MyAny& operator=(const MyAny&) = delete;
-	MyAny(MyAny&&) = default;
-	MyAny& operator=(MyAny&&) = default;
-
-	//7.把MyAny类型里面存储的data数据提取出来
-	template<typename T>
-	T cast_();
-private:
-	// 4.一个基类的指针指针
-	std::unique_ptr<Base> base_;
-};
-
-//7.
-template<typename T>
-T MyAny::cast_(){
-    //在这里我们明确的知道了base_就是一个基类的智能指针，但是指向Derive<T>这个派生类
-    //那么就直接接收了这个指针
-    //这里dynamic_cast<T>(base_.get())是因为base_.get()就是一个指向Derive<T>派生类的指针
-    //智能指针的get()可以得到普通指针
-    Derive<T>* pt = dynamic_cast<Derive<T>*>(base_.get());
-    if(pd==nullptr){
-        thrwo "type is unmatch!";
-    }
-    return pt->data_;
-}
-
-//MySemaphore
-class MySemaphore{
-	private:
-		//条件变量
-		std::mutex mtx_;
-		std::condition_variable cond_;
-		//资源
-		int resLimit_;
-	public:
-		MySemaphore(int resLimit = 0)
-		:resLimit_(resLimit)
-		{}
-
-		~MySemaphore() = default;
-		//P
-		void wait();
-		//V
-		void post();
-};
 #endif
