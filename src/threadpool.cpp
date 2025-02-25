@@ -115,15 +115,22 @@ void ThreadPool::threadFunc(int threadid){
         //回收那些超过initThreadSize_数量的线程
         //超过时间 = 上一次时间 - 当前时间
         if(poolMode_ == PoolMode::MODE_CACHED){
-        //在cached模式下，即使是任务队列里面有任务，但可能这个线程就一直没有被notify到，所以就一直空闲这
-        while(taskQue_.size() > 0){
+
+        while(taskQue_.size() == 0){
             if(notEmpty_.wait_for(lock,std::chrono::seconds(1))==std::cv_status::timeout){//超时了1S还没被notify到
                 auto nowTime = std::chrono::high_resolution_clock::now();
                 auto dur = std::chrono::duration_cast<std::chrono::seconds>(nowTime-lastTime);//持续了多少时间没被notify到了
                 if(dur.count()>=THREAD_MAX_IDLE_TIME&&curThreadSize_>initThreadSize_){//持续时间超过了60秒，且空闲数量大于初始的数量，那么就要把多余的空闲的给回收掉
-                    //开始回收当前线程
+                    //开始回收当前线程,把线程从thread_里移除
+                    threads_.erase(threadid);
                     //记录线程数量相关变量的值修改
+                    curThreadSize_--;//当前线程数量减一
+                    idleThreadSize_--;//本来这就是个空闲线程，自然是要减一
                     //把线程对象从线程列表容器中删除，在这之前的痛点是不知道这个threadFUnc和Thread对象的对应关系，所以设置一个线程id
+
+                    std::cout<<"线程: "<<std::this_thread::get_id()<<"空闲已久，被回收了"<<std::endl;
+                    //直接return
+                    return;
                 }
             }
         }
@@ -183,9 +190,15 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> task){
 
     //如果是在cached模式下，并且任务的数量大于空闲线程的数量，并且线程数量小于线程数量阈值，那么就创建新的线程
     if(poolMode_ == PoolMode::MODE_CACHED&&taskSize_>idleThreadSize_&&curThreadSize_<threadSizeThreshHold_){
+        std::cout<<"创建新线程线程>>>..."<<std::endl;
         std::unique_ptr<Thread> ptr = std::make_unique<Thread>(std::bind(&ThreadPool::threadFunc,this,std::placeholders::_1)); 
         threads_.insert({ptr->getId(),std::move(ptr)});
+        //创建出来的线程需要启动
+        threads_[ptr->getId()]->start();
+        //当前线程数量增加
         curThreadSize_++;
+        //空闲线程数量增加
+        idleThreadSize_++;
     }
 
     return Result(std::move(task));

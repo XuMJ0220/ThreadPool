@@ -37,16 +37,16 @@ class MyTask2:public Task{
 
 int main(){
     ThreadPool pool;
-    pool.start(4);
+    pool.start(1);
 
-    Result res1 = pool.submitTask(std::make_shared<MyTask>(1,100000000));
-    Result res2 = pool.submitTask(std::make_shared<MyTask>(100000001,200000000));
-    Result res3 = pool.submitTask(std::make_shared<MyTask>(200000001,300000000));
-    Result res4 = pool.submitTask(std::make_shared<MyTask2>());
-    ULong sum1 = res1.get().cast_<ULong>();
-    ULong sum2 = res2.get().cast_<ULong>();
-    ULong sum3 = res3.get().cast_<ULong>();
-    std::cout<<"sum = "<<sum1+sum2+sum3<<std::endl;
+    //Result res1 = pool.submitTask(std::make_shared<MyTask>(1,100000000));
+    //Result res2 = pool.submitTask(std::make_shared<MyTask>(100000001,200000000));
+    //Result res3 = pool.submitTask(std::make_shared<MyTask>(200000001,300000000));
+    pool.submitTask(std::make_shared<MyTask2>());
+    //ULong sum1 = res1.get().cast_<ULong>();
+    //ULong sum2 = res2.get().cast_<ULong>();
+   // ULong sum3 = res3.get().cast_<ULong>();
+    //std::cout<<"sum = "<<sum1+sum2+sum3<<std::endl;
     //ULong sum = 0;
     // for(ULong i = 1;i<=300000000;i++){
     //     sum += i;
