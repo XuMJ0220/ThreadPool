@@ -2,6 +2,7 @@
 
 const int MAX_THRESHHOLD_SIZE = 1024;
 const int TASK_MAX_THRESHHOLD = INT32_MAX;
+const int THREAD_MAX_THRESHHOLD = 10;
 /**************************************ThreadPool**************************************************/
 
 //使用例子:
@@ -26,7 +27,13 @@ const int TASK_MAX_THRESHHOLD = INT32_MAX;
 
 // 线程池构造
 ThreadPool::ThreadPool()
-:initThreadSize_(4),threadSizeThreshHold_(MAX_THRESHHOLD_SIZE),taskSize_(0),taskQueMaxThreshHold_(TASK_MAX_THRESHHOLD)
+:initThreadSize_(4),
+taskSize_(0),
+taskQueMaxThreshHold_(TASK_MAX_THRESHHOLD),
+isRunning_(false),
+idleThreadSize_(0),
+threadSizeThreshHold_(THREAD_MAX_THRESHHOLD),
+curThreadSize_(0)
 {
 }
 
@@ -36,22 +43,37 @@ ThreadPool::~ThreadPool()
 
 // 设置线程池的工作模式
 void ThreadPool::setMode(PoolMode mode){
+    //如果是线程池已经开始runing了，那么不允许更改
+    if(checkRunningState()){
+        return ;
+    }
     poolMode_ = mode;
 }
 
 // 设置task任务队列上线阈值
 void ThreadPool::setTaskQueMaxThreshHold(int threshhold){
+    //如果是线程池已经开始runing了，那么不允许更改
+    if(checkRunningState()){
+        return ;
+    }
     taskQueMaxThreshHold_ = threshhold;
 }
 
 // 设置线程池cached模式下线程阈值
 void ThreadPool::setThreadSizeThreshHold(int threshhold){
+    //如果是线程池已经开始runing了，那么不允许更改
+    if(checkRunningState()){
+        return ;
+    }
     threadSizeThreshHold_ = threshhold;
 }
+
 
 // 开启线程池
 void ThreadPool::start(int initThreadSize){
     initThreadSize_ = initThreadSize;//初始化线程数量
+    isRunning_ = true;//线程池开始运行
+    curThreadSize_ = initThreadSize; //初始化当前线程数量
 
     for(int i=0;i<initThreadSize_;i++){
         //往线程池里添加线程
@@ -71,6 +93,8 @@ void ThreadPool::start(int initThreadSize){
     //开始执行
     for(int i = 0;i<initThreadSize_;i++){
         threads_[i]->start();
+        //初始时，开始了一个线程，那肯定是一个空闲线程
+        idleThreadSize_++;
     }
 }
 
@@ -84,12 +108,15 @@ void ThreadPool::threadFunc(){
 
         std::cout<<"线程: "<<std::this_thread::get_id()<<" 准备从任务队列取任务"<<std::endl;
 
+        //Cached模式下，有可能已经创建了很多线程，但是空闲时间超过了60S，应该把多余的线程结束回收掉
+
         // 如果任务队列空了，就要等待，非空才能往下走
         notEmpty_.wait(lock, [&]() -> bool
                        { return taskQue_.size() > 0; });
         // 来到了这里表示任务队列非空，可以取任务执行了
         std::cout<<"线程: "<<std::this_thread::get_id()<<" 取到了任务"<<std::endl;
-
+        // 都已经取到任务了，那么空闲线程数量应该减一
+        idleThreadSize_--;
         std::shared_ptr<Task> ptr = taskQue_.front();
         taskQue_.pop();
         taskSize_--;
@@ -107,6 +134,8 @@ void ThreadPool::threadFunc(){
             //ptr->run();
             ptr->exec();
         }
+        //执行完线程了，那么空闲线程数量应该加一
+        idleThreadSize_++;
     }
 }
 
@@ -128,8 +157,22 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> task){
     taskSize_++;
     //添加完任务后，通知那些被notEmpty条件变量卡住的线程，让他们变成阻塞态
     notEmpty_.notify_all();
+
+    //如果是在cached模式下，并且任务的数量大于空闲线程的数量，并且线程数量小于线程数量阈值，那么就创建新的线程
+    if(poolMode_ == PoolMode::MODE_CACHED&&taskSize_>idleThreadSize_&&curThreadSize_<threadSizeThreshHold_){
+        std::unique_ptr<Thread> ptr = std::make_unique<Thread>(std::bind(&ThreadPool::threadFunc,this)); 
+        threads_.emplace_back(std::move(ptr));
+        curThreadSize_++;
+    }
+
     return Result(std::move(task));
 }
+
+//检查线程池的运行状态
+bool ThreadPool::checkRunningState() const {
+    return isRunning_;
+}
+
 /**************************************ThreadPool**************************************************/
 
 /****************************************Thread**************************************************/

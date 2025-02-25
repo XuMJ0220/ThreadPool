@@ -181,6 +181,7 @@ public:
 	//用户提交任务
 	Result submitTask(std::shared_ptr<Task> task);
 
+
 	//禁止使用赋值和赋值构造函数  
 	ThreadPool(const ThreadPool&) = delete;
 	ThreadPool& operator=(const ThreadPool&) = delete;
@@ -188,6 +189,8 @@ public:
 private:
 	// 定义线程函数
 	void threadFunc();
+	//检查线程池的运行状态
+	bool checkRunningState() const;
 
 private:
 	//之前用裸指针传进去threads_的都是new出来的，既然有new，就得有delete，
@@ -196,6 +199,9 @@ private:
 
 	int initThreadSize_;  // 初始的线程数量
 	int threadSizeThreshHold_; // 线程数量上限阈值
+	std::atomic_bool isRunning_; // 线程池是否正在运行
+	std::atomic_int idleThreadSize_; // 记录空闲线程的数量
+	std::atomic_int curThreadSize_; // 当前线程数量
 
     //任务用队列来存储，用基类的指针或者引用才能实现多态但是需要考虑一个问题：
     //用户可能到时候pool.submitTask(concreteTask)传进来的函数只是个临时对象，
@@ -210,6 +216,7 @@ private:
 	std::condition_variable notEmpty_;//任务队列非空的条件变量
 
 	PoolMode poolMode_; // 当前线程池的工作模式
+	
 };
 
 
