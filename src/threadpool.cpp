@@ -80,14 +80,14 @@ void ThreadPool::start(int initThreadSize){
         //往线程池里添加线程
         for(int i = 0; i < initThreadSize_ ; i++){
             //尖括号<>里的填原本new的那个类型，()括号里的填传入的参数
-            std::unique_ptr<Thread> ptr = std::make_unique<Thread>(std::bind(&ThreadPool::threadFunc,this)); 
+            std::unique_ptr<Thread> ptr = std::make_unique<Thread>(std::bind(&ThreadPool::threadFunc,this,std::placeholders::_1)); 
             //threads_.emplace_back(new Thread(std::bind(&ThreadPool::threadFunc,this)));
             //不能直接把ptr传进去，ptr这里是一个左值，
             //ptr在这里其实是一个unique_ptr，unique_ptr的左值引用拷贝构造函数被删掉了，
             //而emplace_back是会默认进行赋值的，这就导致了传入一个左值的话会报错，所以得用move来把左值改成右值
             //简单来说，就是emplace_back如果参数是一个左值，
             //那么就会进行左值引用拷贝构造，如果是一个右值，就会进行右值引用拷贝构造
-            threads_.emplace_back(std::move(ptr));
+            threads_.insert({ptr->getId(),std::move(ptr)});
         }
     }
 
@@ -100,7 +100,7 @@ void ThreadPool::start(int initThreadSize){
 }
 
 // 定义线程函数，这里充当消费者，从任务队列里取任务执行
-void ThreadPool::threadFunc(){
+void ThreadPool::threadFunc(int threadid){
     auto lastTime = std::chrono::high_resolution_clock::now();//记录上一次时间
 
     for(;;){
@@ -183,8 +183,8 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> task){
 
     //如果是在cached模式下，并且任务的数量大于空闲线程的数量，并且线程数量小于线程数量阈值，那么就创建新的线程
     if(poolMode_ == PoolMode::MODE_CACHED&&taskSize_>idleThreadSize_&&curThreadSize_<threadSizeThreshHold_){
-        std::unique_ptr<Thread> ptr = std::make_unique<Thread>(std::bind(&ThreadPool::threadFunc,this)); 
-        threads_.emplace_back(std::move(ptr));
+        std::unique_ptr<Thread> ptr = std::make_unique<Thread>(std::bind(&ThreadPool::threadFunc,this,std::placeholders::_1)); 
+        threads_.insert({ptr->getId(),std::move(ptr)});
         curThreadSize_++;
     }
 
@@ -201,9 +201,8 @@ bool ThreadPool::checkRunningState() const {
 /****************************************Thread**************************************************/
  int Thread::generateId_ = 0;
 //构造函数
-Thread::Thread(std::function<void(void)> threadFun)
-:threadFun_(threadFun),
-threadId_(generateId_++)
+Thread::Thread(std::function<void(int)> threadFun)
+:threadFun_(threadFun),threadId_(generateId_++)
 {
 }
 
@@ -213,7 +212,7 @@ Thread::~Thread(){}
 //开始线程
 void Thread::start(){
     // 创建一个线程来执行一个线程函数 pthread_create
-    std::thread t(threadFun_);
+    std::thread t(threadFun_,threadId_);
     t.detach(); // 设置分离线程  
 }
 

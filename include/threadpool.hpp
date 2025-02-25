@@ -10,15 +10,16 @@
 #include <iostream>
 #include <mutex>
 #include <condition_variable>
+#include <unordered_map>
 class Thread{
     private:
-        std::function<void(void)> threadFun_;
+        std::function<void(int)> threadFun_;
 
 		static int generateId_;//静态线程ID，可以保证不管创建了多少个Thread，这个generateId都是唯一的
 		int threadId_;//保存线程id
     public:
         //构造函数
-        Thread(std::function<void(void)>);
+        Thread(std::function<void(int)>);
 
         //析构函数
         ~Thread();
@@ -194,14 +195,16 @@ public:
 
 private:
 	// 定义线程函数
-	void threadFunc();
+	void threadFunc(int threadid);
 	//检查线程池的运行状态
 	bool checkRunningState() const;
 
 private:
 	//之前用裸指针传进去threads_的都是new出来的，既然有new，就得有delete，
 	//但是在容器里放着也不好去delete，直接改成智能指针让它帮我们delete就行了
-	std::vector<std::unique_ptr<Thread>> threads_; // 线程列表,改为智能指针
+	//std::vector<std::unique_ptr<Thread>> threads_; // 线程列表,改为智能指针
+	//用map存
+	std::unordered_map<int,std::unique_ptr<Thread>> threads_;
 
 	int initThreadSize_;  // 初始的线程数量
 	int threadSizeThreshHold_; // 线程数量上限阈值
@@ -224,6 +227,5 @@ private:
 	PoolMode poolMode_; // 当前线程池的工作模式
 	
 };
-
 
 #endif
