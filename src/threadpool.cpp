@@ -3,6 +3,7 @@
 const int MAX_THRESHHOLD_SIZE = 1024;
 const int TASK_MAX_THRESHHOLD = INT32_MAX;
 const int THREAD_MAX_THRESHHOLD = 10;
+const int THREAD_MAX_IDLE_TIME = 60;//空闲线程最多存在的时间
 /**************************************ThreadPool**************************************************/
 
 //使用例子:
@@ -100,6 +101,8 @@ void ThreadPool::start(int initThreadSize){
 
 // 定义线程函数，这里充当消费者，从任务队列里取任务执行
 void ThreadPool::threadFunc(){
+    auto lastTime = std::chrono::high_resolution_clock::now();//记录上一次时间
+
     for(;;){
         // 抢锁
         std::unique_lock<std::mutex> lock(taskMutex_);
@@ -109,10 +112,28 @@ void ThreadPool::threadFunc(){
         std::cout<<"线程: "<<std::this_thread::get_id()<<" 准备从任务队列取任务"<<std::endl;
 
         //Cached模式下，有可能已经创建了很多线程，但是空闲时间超过了60S，应该把多余的线程结束回收掉
+        //回收那些超过initThreadSize_数量的线程
+        //超过时间 = 上一次时间 - 当前时间
+        if(poolMode_ == PoolMode::MODE_CACHED){
+        //在cached模式下，即使是任务队列里面有任务，但可能这个线程就一直没有被notify到，所以就一直空闲这
+        while(taskQue_.size() > 0){
+            if(notEmpty_.wait_for(lock,std::chrono::seconds(1))==std::cv_status::timeout){//超时了1S还没被notify到
+                auto nowTime = std::chrono::high_resolution_clock::now();
+                auto dur = std::chrono::duration_cast<std::chrono::seconds>(nowTime-lastTime);//持续了多少时间没被notify到了
+                if(dur.count()>=THREAD_MAX_IDLE_TIME&&curThreadSize_>initThreadSize_){//持续时间超过了60秒，且空闲数量大于初始的数量，那么就要把多余的空闲的给回收掉
+                    //开始回收当前线程
+                    //记录线程数量相关变量的值修改
+                    //把线程对象从线程列表容器中删除，在这之前的痛点是不知道这个threadFUnc和Thread对象的对应关系，所以设置一个线程id
+                }
+            }
+        }
 
-        // 如果任务队列空了，就要等待，非空才能往下走
-        notEmpty_.wait(lock, [&]() -> bool
-                       { return taskQue_.size() > 0; });
+
+        }else{
+            // 如果任务队列空了，就要等待，非空才能往下走
+            notEmpty_.wait(lock, [&]() -> bool{ return taskQue_.size() > 0; });
+        }
+
         // 来到了这里表示任务队列非空，可以取任务执行了
         std::cout<<"线程: "<<std::this_thread::get_id()<<" 取到了任务"<<std::endl;
         // 都已经取到任务了，那么空闲线程数量应该减一
@@ -136,6 +157,8 @@ void ThreadPool::threadFunc(){
         }
         //执行完线程了，那么空闲线程数量应该加一
         idleThreadSize_++;
+        //任务执行完了，更新一下时间
+        lastTime = std::chrono::high_resolution_clock::now();
     }
 }
 
