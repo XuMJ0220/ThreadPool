@@ -87,7 +87,8 @@ void ThreadPool::start(int initThreadSize){
             //而emplace_back是会默认进行赋值的，这就导致了传入一个左值的话会报错，所以得用move来把左值改成右值
             //简单来说，就是emplace_back如果参数是一个左值，
             //那么就会进行左值引用拷贝构造，如果是一个右值，就会进行右值引用拷贝构造
-            threads_.insert({ptr->getId(),std::move(ptr)});
+            auto id = ptr->getId();
+            threads_.insert({id,std::move(ptr)});
         }
     }
 
@@ -192,9 +193,10 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> task){
     if(poolMode_ == PoolMode::MODE_CACHED&&taskSize_>idleThreadSize_&&curThreadSize_<threadSizeThreshHold_){
         std::cout<<"创建新线程线程>>>..."<<std::endl;
         std::unique_ptr<Thread> ptr = std::make_unique<Thread>(std::bind(&ThreadPool::threadFunc,this,std::placeholders::_1)); 
-        threads_.insert({ptr->getId(),std::move(ptr)});
+        auto id = ptr->getId();
+        threads_.insert({id,std::move(ptr)});
         //创建出来的线程需要启动
-        threads_[ptr->getId()]->start();
+        threads_[id]->start();
         //当前线程数量增加
         curThreadSize_++;
         //空闲线程数量增加
