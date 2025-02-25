@@ -13,6 +13,9 @@
 class Thread{
     private:
         std::function<void(void)> threadFun_;
+
+		static int generateId_;//静态线程ID，可以保证不管创建了多少个Thread，这个generateId都是唯一的
+		int threadId_;//保存线程id
     public:
         //构造函数
         Thread(std::function<void(void)>);
@@ -22,6 +25,9 @@ class Thread{
 
         //开始线程
         void start();
+
+		//获取线程ID
+		int getId() const;
 };
 //实现自己的Any类
 class MyAny

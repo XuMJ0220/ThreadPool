@@ -199,9 +199,11 @@ bool ThreadPool::checkRunningState() const {
 /**************************************ThreadPool**************************************************/
 
 /****************************************Thread**************************************************/
+ int Thread::generateId_ = 0;
 //构造函数
 Thread::Thread(std::function<void(void)> threadFun)
-:threadFun_(threadFun)
+:threadFun_(threadFun),
+threadId_(generateId_++)
 {
 }
 
@@ -213,6 +215,11 @@ void Thread::start(){
     // 创建一个线程来执行一个线程函数 pthread_create
     std::thread t(threadFun_);
     t.detach(); // 设置分离线程  
+}
+
+//获取线程ID
+int Thread::getId() const {
+    return threadId_;
 }
 /****************************************Thread**************************************************/
 
